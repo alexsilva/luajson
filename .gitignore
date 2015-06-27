@@ -3,7 +3,9 @@
 *.ko
 *.obj
 *.elf
-
+*.cbp
+*.depend
+*.layout
 # Precompiled Headers
 *.gch
 *.pch

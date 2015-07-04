@@ -31,6 +31,7 @@ void new_object(json_value *data, ObjIndex *objIndex) {
         idx.index = 0;
 
         convert_value(data->u.object.values[i].value, &idx);
+        idx.obj = NULL; // free pointer
     }
 }
 
@@ -48,6 +49,7 @@ void new_array(json_value *data, ObjIndex *objIndex) {
     for (i = 0; i < data->u.array.length; i++) {
         convert_value(data->u.array.values[i], &idx);
     }
+    idx.obj = NULL; // free pointer
 }
 
 void convert_value(json_value *data, ObjIndex *objIndex){

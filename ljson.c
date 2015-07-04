@@ -19,14 +19,14 @@ json_value *encode_object(lua_Object *obj, const char *key, json_value *object);
 void new_object(json_value *data, ObjIndex *objIndex) {
     lua_Object obj = lua_createtable();
 
-    if (objIndex->obj != NULL)
+    if (objIndex->obj)
         key_object_pair(objIndex, &obj);
 
     int i;
     for (i = 0; i < data->u.object.length; i++) {
         ObjIndex idx;
 
-        idx.obj = obj;
+        idx.obj = &obj;
         idx.key = data->u.object.values[i].name;
         idx.index = 0;
 
@@ -36,12 +36,13 @@ void new_object(json_value *data, ObjIndex *objIndex) {
 
 void new_array(json_value *data, ObjIndex *objIndex) {
     ObjIndex idx;
-    idx.obj = lua_createtable();
+    lua_Object obj = lua_createtable();
+    idx.obj = &obj;
     idx.key = NULL;
     idx.index = 1;
 
-    if (objIndex->obj != NULL)
-        key_object_pair(objIndex, &(idx.obj));
+    if (objIndex->obj)
+        key_object_pair(objIndex, idx.obj);
 
     int i;
     for (i = 0; i < data->u.array.length; i++) {
@@ -175,20 +176,24 @@ static void decodeJson(void) {
 
 static void encodeJson(void) {
     lua_Object obj = lua_getparam(1);
-    if (!lua_istable(obj)) {
-        lua_error("only table is suported!");
-    }
-    json_value *arr;
+    json_value *json_vl;
 
-    if (is_indexed_array(&obj) == true) {
-        arr = encode_array(&obj, NULL, NULL);
+    if (lua_isnumber(obj)) {
+        json_vl = json_double_new(lua_getnumber(obj)); // number like 1
+    } else if (lua_isstring(obj)) {
+        json_vl = json_string_new(lua_getstring(obj)); // string like "a" or "\"\""
+    } else if (lua_isnil(obj)) {
+        json_vl = json_null_new(); // null like nil
+    } else if (is_indexed_array(&obj) == true) {  // array [1,3,4]
+        json_vl = encode_array(&obj, NULL, NULL);
     } else {
-        arr = encode_object(&obj, NULL, NULL);
+        json_vl = encode_object(&obj, NULL, NULL);  // object {"a": 1}
     }
-    char *buf = malloc(json_measure(arr));
-    json_serialize(buf, arr);
+    char *buf = malloc(json_measure(json_vl));
+    json_serialize(buf, json_vl);
 
-    lua_pushlstring(buf, (long) strlen(buf));
+    lua_pushstring(buf);
+    free(buf);
 }
 
 static struct luaL_reg json[] = {

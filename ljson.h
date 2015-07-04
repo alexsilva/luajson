@@ -22,7 +22,7 @@ extern "C"
 typedef enum { false, true } bool;
 
 struct OIdx {
-    lua_Object obj;
+    lua_Object *obj;
     char *key;
     int index;
 };

@@ -7,7 +7,7 @@
 
 
 void set_key_ref(ObjIndex *objIdx) {
-    if (strlen(objIdx->key) > 0) {
+    if (objIdx->key != NULL) {
         lua_pushstring(objIdx->key);
     } else {
         lua_pushnumber(objIdx->index);

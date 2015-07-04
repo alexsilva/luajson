@@ -37,7 +37,7 @@ void new_object(json_value *data, ObjIndex *objIndex) {
 void new_array(json_value *data, ObjIndex *objIndex) {
     ObjIndex idx;
     idx.obj = lua_createtable();
-    idx.key = "";
+    idx.key = NULL;
     idx.index = 1;
 
     if (objIndex->obj != NULL)
@@ -168,8 +168,8 @@ json_value *encode_object(lua_Object *obj, const char *key, json_value *object) 
 static void decodeJson(void) {
     ObjIndex idx;
     idx.obj = NULL;
-    idx.key = "";
-    idx.index = 0;
+    idx.key = NULL;
+    idx.index = 1;
     decode(luaL_check_string(1), &idx);
 }
 

@@ -101,14 +101,14 @@ bool is_indexed_array(lua_Object *obj) {
     return true;
 }
 
-json_value *encode_value(json_value *object, const char *key, lua_Object value) {
-    switch (luaA_Address(value)->ttype) {
+json_value *encode_value(json_value *object, const char *key, lua_Object *value) {
+    switch (luaA_Address(*value)->ttype) {
         case LUA_T_NUMBER:
-            return json_double_new(lua_getnumber(value));
+            return json_double_new(lua_getnumber(*value));
         case LUA_T_STRING:
-            return json_string_new(lua_getstring(value));
+            return json_string_new(lua_getstring(*value));
         case LUA_T_ARRAY:
-            return is_indexed_array(&value) ? encode_array(&value, key, object) : encode_object(&value, key, object);
+            return is_indexed_array(value) ? encode_array(value, key, object) : encode_object(value, key, object);
         case LUA_T_NIL:
             return json_null_new();
         default:
@@ -134,7 +134,7 @@ json_value *encode_array(lua_Object *obj, const char *key, json_value *object) {
 
     while (index != 0) {
         lua_Object value = lua_getparam(2);
-        json_array_push(arr, encode_value(object, NULL, value));  // ex {1 = ?}
+        json_array_push(arr, encode_value(object, NULL, &value));  // ex {1 = ?}
         index = lua_next(*obj, index);
     }
     return arr;
@@ -155,10 +155,10 @@ json_value *encode_object(lua_Object *obj, const char *key, json_value *object) 
     index = lua_next(*obj, index);
 
     while (index != 0) {
-        char *k = lua_getstring(lua_getparam(1));
-        lua_Object v = lua_getparam(2);
+        char *local_key = lua_getstring(lua_getparam(1));
+        lua_Object value = lua_getparam(2);
 
-        json_object_push(arr, k, encode_value(arr, k, v));  // ex {a = ?}
+        json_object_push(arr, local_key, encode_value(arr, local_key, &value));  // ex {a = ?}
 
         index = lua_next(*obj, index);
     }

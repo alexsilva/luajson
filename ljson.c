@@ -1,14 +1,19 @@
 #include "json.h"
+#include "json-builder.h"
 
 #include "lua.h"
 #include "lualib.h"
 #include "lauxlib.h"
+#include "lapi.h"
 
 #include <stdlib.h>
 #include "stdio.h"
 
 #include "ljson.h"
 #include "helpers.h"
+
+json_value *encode_array(lua_Object *obj, const char *key, json_value *object);
+json_value *encode_object(lua_Object *obj, const char *key, json_value *object);
 
 
 void new_object(json_value *data, ObjIndex *objIndex) {
@@ -60,7 +65,7 @@ void convert_value(json_value *data, ObjIndex *objIndex){
             break;
         case json_string:
             key_strlvalue_pair(objIndex, data->u.string.ptr,
-                               data->u.string.length);
+                               (long) data->u.string.length);
             break;
         case json_boolean:
             key_value_pair(objIndex, data->u.boolean);
@@ -79,12 +84,86 @@ void decode(char *data, ObjIndex *objIndex) {
     char error[256];
     json_value *value = json_parse_ex(&settings, data, strlen(data), error);
     if (value == 0) {
-        return lua_error(error);
+        return lua_error((char *) error);
     }
     convert_value(value, objIndex);
     json_value_free(value);
 }
 
+bool is_indexed_array(lua_Object *obj) {
+    int index = 0;
+    index = lua_next(*obj, index);
+    while (index != 0) {
+        if (!lua_isnumber(lua_getparam(1)))
+            return false;
+        index = lua_next(*obj, index);
+    }
+    return true;
+}
+
+json_value *encode_value(json_value *object, const char *key, lua_Object value) {
+    switch (luaA_Address(value)->ttype) {
+        case LUA_T_NUMBER:
+            return json_double_new(lua_getnumber(value));
+        case LUA_T_STRING:
+            return json_string_new(lua_getstring(value));
+        case LUA_T_ARRAY:
+            return is_indexed_array(&value) ? encode_array(&value, key, object) : encode_object(&value, key, object);
+        case LUA_T_NIL:
+            return json_null_new();
+        default:
+            lua_error("type not recognized!");
+    }
+    return NULL;
+}
+
+
+json_value *encode_array(lua_Object *obj, const char *key, json_value *object) {
+    json_value *arr = json_array_new(0);
+    if (object != NULL) {
+        switch (object->type) {
+            case json_array:
+                json_array_push(object, arr);
+                break;
+            default:  // is object
+                json_object_push(object, key,  arr);
+        }
+    }
+    int index = 0;
+    index = lua_next(*obj, index);
+
+    while (index != 0) {
+        lua_Object value = lua_getparam(2);
+        json_array_push(arr, encode_value(object, NULL, value));  // ex {1 = ?}
+        index = lua_next(*obj, index);
+    }
+    return arr;
+}
+
+json_value *encode_object(lua_Object *obj, const char *key, json_value *object) {
+    json_value *arr = json_object_new(0);
+    if (object != NULL) {
+        switch (object->type) {
+            case json_array:
+                json_array_push(object, arr);
+                break;
+            default:  // is object
+                json_object_push(object, key,  arr);
+        }
+    }
+    int index = 0;
+    index = lua_next(*obj, index);
+
+    while (index != 0) {
+        char *k = lua_getstring(lua_getparam(1));
+        lua_Object v = lua_getparam(2);
+
+        json_object_push(arr, k, encode_value(arr, k, v));  // ex {a = ?}
+
+        index = lua_next(*obj, index);
+    }
+    return arr;
+}
 
 static void decodeJson(void) {
     ObjIndex idx;
@@ -94,8 +173,27 @@ static void decodeJson(void) {
     decode(luaL_check_string(1), &idx);
 }
 
+static void encodeJson(void) {
+    lua_Object obj = lua_getparam(1);
+    if (!lua_istable(obj)) {
+        lua_error("only table is suported!");
+    }
+    json_value *arr;
+
+    if (is_indexed_array(&obj) == true) {
+        arr = encode_array(&obj, NULL, NULL);
+    } else {
+        arr = encode_object(&obj, NULL, NULL);
+    }
+    char *buf = malloc(json_measure(arr));
+    json_serialize(buf, arr);
+
+    lua_pushlstring(buf, (long) strlen(buf));
+}
+
 static struct luaL_reg json[] = {
-    {"json_decode", decodeJson}
+    {"json_decode", decodeJson},
+    {"json_encode", encodeJson}
 };
 
 int DLL_EXPORT lua_ljsonopen(lua_State *state)

@@ -12,13 +12,12 @@
 #include "ljson.h"
 #include "helpers.h"
 
-void convert_value(json_value *data, ObjIndex *objIndex);
-json_value *encode_array(lua_Object *obj, const char *key, json_value *object);
-json_value *encode_object(lua_Object *obj, const char *key, json_value *object);
+static void convert_value(json_value *data, ObjIndex *objIndex);
+static json_value *encode_array(lua_Object *obj, const char *key, json_value *object);
+static json_value *encode_object(lua_Object *obj, const char *key, json_value *object);
 
 
-
-void new_object(json_value *data, ObjIndex *objIndex) {
+static void new_object(json_value *data, ObjIndex *objIndex) {
     lua_Object obj = lua_createtable();
 
     if (objIndex->obj)
@@ -37,7 +36,7 @@ void new_object(json_value *data, ObjIndex *objIndex) {
     }
 }
 
-void new_array(json_value *data, ObjIndex *objIndex) {
+static void new_array(json_value *data, ObjIndex *objIndex) {
     ObjIndex idx;
     lua_Object obj = lua_createtable();
     idx.obj = &obj;
@@ -54,7 +53,7 @@ void new_array(json_value *data, ObjIndex *objIndex) {
     idx.obj = NULL; // free pointer
 }
 
-void convert_value(json_value *data, ObjIndex *objIndex){
+static void convert_value(json_value *data, ObjIndex *objIndex){
     switch (data->type) {
         case json_object:
             new_object(data, objIndex);
@@ -82,7 +81,7 @@ void convert_value(json_value *data, ObjIndex *objIndex){
     }
 }
 
-void decode(char *data, ObjIndex *objIndex) {
+static void decode(char *data, ObjIndex *objIndex) {
     json_settings settings;
     memset(&settings, 0, sizeof (json_settings));
     settings.settings = json_enable_comments;
@@ -95,7 +94,7 @@ void decode(char *data, ObjIndex *objIndex) {
     json_value_free(value);
 }
 
-bool is_indexed_array(lua_Object *obj) {
+static bool is_indexed_array(lua_Object *obj) {
     int index = 0;
     index = lua_next(*obj, index);
     while (index != 0) {
@@ -106,7 +105,7 @@ bool is_indexed_array(lua_Object *obj) {
     return true;
 }
 
-json_value *encode_value(json_value *object, const char *key, lua_Object *value) {
+static json_value *encode_value(json_value *object, const char *key, lua_Object *value) {
     switch (luaA_Address(*value)->ttype) {
         case LUA_T_NUMBER:
             return json_double_new(lua_getnumber(*value));
@@ -123,7 +122,7 @@ json_value *encode_value(json_value *object, const char *key, lua_Object *value)
 }
 
 
-json_value *encode_array(lua_Object *obj, const char *key, json_value *object) {
+static json_value *encode_array(lua_Object *obj, const char *key, json_value *object) {
     json_value *arr = json_array_new(0);
     if (object != NULL) {
         switch (object->type) {
@@ -145,7 +144,7 @@ json_value *encode_array(lua_Object *obj, const char *key, json_value *object) {
     return arr;
 }
 
-json_value *encode_object(lua_Object *obj, const char *key, json_value *object) {
+static json_value *encode_object(lua_Object *obj, const char *key, json_value *object) {
     json_value *arr = json_object_new(0);
     if (object != NULL) {
         switch (object->type) {

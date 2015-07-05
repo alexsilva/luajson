@@ -20,20 +20,18 @@ static json_value *encode_object(lua_Object *obj, const char *key, json_value *o
 static void new_object(json_value *data, ObjIndex *objIndex) {
     lua_Object obj = lua_createtable();
 
-    if (objIndex->obj)
+    if (objIndex->obj != NULL)
         key_object_pair(objIndex, &obj);
 
     int i;
+    ObjIndex idx;
+    idx.obj = &obj;
     for (i = 0; i < data->u.object.length; i++) {
-        ObjIndex idx;
-
-        idx.obj = &obj;
         idx.key = data->u.object.values[i].name;
         idx.index = 0;
-
         convert_value(data->u.object.values[i].value, &idx);
-        idx.obj = NULL; // free pointer
     }
+    idx.obj = NULL; // free pointer
 }
 
 static void new_array(json_value *data, ObjIndex *objIndex) {
@@ -43,7 +41,7 @@ static void new_array(json_value *data, ObjIndex *objIndex) {
     idx.key = NULL;
     idx.index = 1;
 
-    if (objIndex->obj)
+    if (objIndex->obj != NULL)
         key_object_pair(objIndex, idx.obj);
 
     int i;
@@ -123,6 +121,7 @@ static json_value *encode_value(json_value *object, const char *key, lua_Object 
 
 
 static json_value *encode_array(lua_Object *obj, const char *key, json_value *object) {
+    lua_beginblock();
     json_value *arr = json_array_new(0);
     if (object != NULL) {
         switch (object->type) {
@@ -135,16 +134,18 @@ static json_value *encode_array(lua_Object *obj, const char *key, json_value *ob
     }
     int index = 0;
     index = lua_next(*obj, index);
-
     while (index != 0) {
+        lua_getparam(1);
         lua_Object value = lua_getparam(2);
-        json_array_push(arr, encode_value(object, key, &value));  // ex {1 = ?}
+        json_array_push(arr, encode_value(arr, key, &value));  // ex {1 = ?}
         index = lua_next(*obj, index);
     }
+    lua_endblock();
     return arr;
 }
 
 static json_value *encode_object(lua_Object *obj, const char *key, json_value *object) {
+    lua_beginblock();
     json_value *arr = json_object_new(0);
     if (object != NULL) {
         switch (object->type) {
@@ -157,7 +158,6 @@ static json_value *encode_object(lua_Object *obj, const char *key, json_value *o
     }
     int index = 0;
     index = lua_next(*obj, index);
-
     while (index != 0) {
         char *local_key = lua_getstring(lua_getparam(1));
         lua_Object value = lua_getparam(2);
@@ -166,6 +166,7 @@ static json_value *encode_object(lua_Object *obj, const char *key, json_value *o
 
         index = lua_next(*obj, index);
     }
+    lua_endblock();
     return arr;
 }
 
@@ -174,7 +175,8 @@ static void decodeJson(void) {
     idx.obj = NULL;
     idx.key = NULL;
     idx.index = 1;
-    decode(luaL_check_string(1), &idx);
+    char *str = luaL_check_string(1);
+    decode(str, &idx);
 }
 
 static void encodeJson(void) {

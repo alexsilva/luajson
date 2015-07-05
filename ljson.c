@@ -137,7 +137,7 @@ json_value *encode_array(lua_Object *obj, const char *key, json_value *object) {
 
     while (index != 0) {
         lua_Object value = lua_getparam(2);
-        json_array_push(arr, encode_value(object, NULL, &value));  // ex {1 = ?}
+        json_array_push(arr, encode_value(object, key, &value));  // ex {1 = ?}
         index = lua_next(*obj, index);
     }
     return arr;

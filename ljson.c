@@ -12,8 +12,10 @@
 #include "ljson.h"
 #include "helpers.h"
 
+void convert_value(json_value *data, ObjIndex *objIndex);
 json_value *encode_array(lua_Object *obj, const char *key, json_value *object);
 json_value *encode_object(lua_Object *obj, const char *key, json_value *object);
+
 
 
 void new_object(json_value *data, ObjIndex *objIndex) {

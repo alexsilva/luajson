@@ -30,7 +30,6 @@ struct OIdx {
 typedef struct OIdx ObjIndex;
 
 int DLL_EXPORT lua_ljsonopen(lua_State *state);
-void convert_value(json_value *data, ObjIndex *objIndex);
 
 #ifdef __cplusplus
 }

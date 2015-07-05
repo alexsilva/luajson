@@ -123,20 +123,14 @@ static json_value *encode_value(json_value *object, const char *key, lua_Object 
 static json_value *encode_array(lua_Object *obj, const char *key, json_value *object) {
     lua_beginblock();
     json_value *arr = json_array_new(0);
-    if (object != NULL) {
-        switch (object->type) {
-            case json_array:
-                json_array_push(object, arr);
-                break;
-            default:  // is object
-                json_object_push(object, key,  arr);
-        }
-    }
+
     int index = 0;
     index = lua_next(*obj, index);
+
+    lua_Object value;
     while (index != 0) {
         lua_getparam(1);
-        lua_Object value = lua_getparam(2);
+        value = lua_getparam(2);
         json_array_push(arr, encode_value(arr, key, &value));  // ex {1 = ?}
         index = lua_next(*obj, index);
     }
@@ -146,28 +140,21 @@ static json_value *encode_array(lua_Object *obj, const char *key, json_value *ob
 
 static json_value *encode_object(lua_Object *obj, const char *key, json_value *object) {
     lua_beginblock();
-    json_value *arr = json_object_new(0);
-    if (object != NULL) {
-        switch (object->type) {
-            case json_array:
-                json_array_push(object, arr);
-                break;
-            default:  // is object
-                json_object_push(object, key,  arr);
-        }
-    }
+    json_value *json_obj = json_object_new(0);
+
     int index = 0;
     index = lua_next(*obj, index);
+
+    char *local_key;
+    lua_Object value;
     while (index != 0) {
-        char *local_key = lua_getstring(lua_getparam(1));
-        lua_Object value = lua_getparam(2);
-
-        json_object_push(arr, local_key, encode_value(arr, local_key, &value));  // ex {a = ?}
-
+        local_key = lua_getstring(lua_getparam(1));
+        value = lua_getparam(2);
+        json_object_push(json_obj, local_key, encode_value(json_obj, local_key, &value));  // ex {a = ?}
         index = lua_next(*obj, index);
     }
     lua_endblock();
-    return arr;
+    return json_obj;
 }
 
 static void decodeJson(void) {

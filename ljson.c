@@ -186,11 +186,7 @@ static void encodeJson(void) {
     } else if (lua_isnil(obj)) {
         json_vl = json_null_new(); // null like nil
     } else if (is_indexed_array(&obj) == true) {  // array [1,3,4]
-        if (!is_empty_array(&obj)) {
-            json_vl = encode_array(&obj, NULL, NULL);
-        } else {
-            json_vl = encode_object(&obj, NULL, NULL);  // hack
-        }
+        json_vl = !is_empty_array(&obj) ? encode_array(&obj, NULL, NULL) : encode_object(&obj, NULL, NULL);
     } else {
         json_vl = encode_object(&obj, NULL, NULL);  // object {"a": 1}
     }

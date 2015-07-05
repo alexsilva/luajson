@@ -103,6 +103,14 @@ static bool is_indexed_array(lua_Object *obj) {
     return true;
 }
 
+static boolean is_empty_array(lua_Object *obj) {
+    lua_beginblock();
+    int index = 0;
+    index = lua_next(*obj, index);
+    lua_endblock();
+    return index == 0 ? true : false;
+}
+
 static json_value *encode_value(json_value *object, const char *key, lua_Object *value) {
     switch (luaA_Address(*value)->ttype) {
         case LUA_T_NUMBER:
@@ -110,7 +118,8 @@ static json_value *encode_value(json_value *object, const char *key, lua_Object 
         case LUA_T_STRING:
             return json_string_new(lua_getstring(*value));
         case LUA_T_ARRAY:
-            return is_indexed_array(value) ? encode_array(value, key, object) : encode_object(value, key, object);
+            return is_indexed_array(value) && !is_empty_array(value) ?
+                   encode_array(value, key, object) : encode_object(value, key, object);
         case LUA_T_NIL:
             return json_null_new();
         default:
@@ -177,7 +186,11 @@ static void encodeJson(void) {
     } else if (lua_isnil(obj)) {
         json_vl = json_null_new(); // null like nil
     } else if (is_indexed_array(&obj) == true) {  // array [1,3,4]
-        json_vl = encode_array(&obj, NULL, NULL);
+        if (!is_empty_array(&obj)) {
+            json_vl = encode_array(&obj, NULL, NULL);
+        } else {
+            json_vl = encode_object(&obj, NULL, NULL);  // hack
+        }
     } else {
         json_vl = encode_object(&obj, NULL, NULL);  // object {"a": 1}
     }

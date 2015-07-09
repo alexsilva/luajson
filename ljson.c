@@ -2,11 +2,9 @@
 #include "json-builder.h"
 
 #include "lua.h"
-#include "lualib.h"
 #include "lauxlib.h"
 #include "lapi.h"
 
-#include <stdlib.h>
 #include "stdio.h"
 
 #include "ljson.h"
@@ -103,7 +101,7 @@ static bool is_indexed_array(lua_Object *obj) {
     return true;
 }
 
-static boolean is_empty_array(lua_Object *obj) {
+static bool is_empty_array(lua_Object *obj) {
     lua_beginblock();
     int index = 0;
     index = lua_next(*obj, index);

@@ -94,13 +94,16 @@ static bool is_indexed_array(lua_Object *obj) {
     lua_beginblock();
     int index = 0;
     index = lua_next(*obj, index);
+    bool status = true;
     while (index != 0) {
-        if (!lua_isnumber(lua_getparam(1)))
-            return false;
+        if (!lua_isnumber(lua_getparam(1))) {
+            status = false;
+            break;
+        }
         index = lua_next(*obj, index);
     }
     lua_endblock();
-    return true;
+    return status;
 }
 
 static bool is_empty_array(lua_Object *obj) {

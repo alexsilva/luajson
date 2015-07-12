@@ -1,9 +1,6 @@
-#include <stdio.h>
 #include "json.h"
 
 #include "lua.h"
-#include "lualib.h"
-#include "lauxlib.h"
 #include "ljson.h"
 
 
@@ -25,7 +22,6 @@ void key_strvalue_pair(ObjIndex *objIdx, char *str) {
 
     if (objIdx->obj != NULL) {
         lua_settable();
-        lua_pushobject(*objIdx->obj);
     }
 }
 
@@ -38,7 +34,6 @@ void key_strlvalue_pair(ObjIndex *objIdx, char *str, long length) {
 
     if (objIdx->obj != NULL) {
         lua_settable();
-        lua_pushobject(*objIdx->obj);
     }
 }
 
@@ -51,7 +46,6 @@ void key_nil_pair(ObjIndex *objIdx) {
 
     if (objIdx->obj != NULL) {
         lua_settable();
-        lua_pushobject(*objIdx->obj);
     }
 }
 
@@ -64,7 +58,6 @@ void key_value_pair(ObjIndex *objIdx, double number) {
 
     if (objIdx->obj != NULL) {
         lua_settable();
-        lua_pushobject(*objIdx->obj);
     }
 }
 

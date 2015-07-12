@@ -30,6 +30,7 @@ static void new_object(json_value *data, ObjIndex *objIndex) {
         convert_value(data->u.object.values[i].value, &idx);
     }
     idx.obj = NULL; // free pointer
+    lua_pushobject(obj);
 }
 
 static void new_array(json_value *data, ObjIndex *objIndex) {
@@ -47,6 +48,7 @@ static void new_array(json_value *data, ObjIndex *objIndex) {
         convert_value(data->u.array.values[i], &idx);
     }
     idx.obj = NULL; // free pointer
+    lua_pushobject(obj);
 }
 
 static void convert_value(json_value *data, ObjIndex *objIndex){

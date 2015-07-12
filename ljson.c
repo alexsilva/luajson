@@ -91,6 +91,7 @@ static void decode(char *data, ObjIndex *objIndex) {
 }
 
 static bool is_indexed_array(lua_Object *obj) {
+    lua_beginblock();
     int index = 0;
     index = lua_next(*obj, index);
     while (index != 0) {
@@ -98,6 +99,7 @@ static bool is_indexed_array(lua_Object *obj) {
             return false;
         index = lua_next(*obj, index);
     }
+    lua_endblock();
     return true;
 }
 

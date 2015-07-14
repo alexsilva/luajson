@@ -3,20 +3,18 @@
 
 #include "lua.h"
 #include "lauxlib.h"
-#include "lapi.h"
-
 #include "stdio.h"
 
 #include "ljson.h"
 #include "helpers.h"
 
-static void convert_value(json_value *data, ObjIndex *objIndex);
-static json_value *encode_array(lua_Object *obj, const char *key, json_value *object);
-static json_value *encode_object(lua_Object *obj, const char *key, json_value *object);
+static void convert_value(lua_State *L, json_value *data, ObjIndex *objIndex);
+static json_value *encode_array(lua_State *L, lua_Object *obj, const char *key, json_value *object);
+static json_value *encode_object(lua_State *L, lua_Object *obj, const char *key, json_value *object);
 
 
-static void new_object(json_value *data, ObjIndex *objIndex) {
-    lua_Object obj = lua_createtable();
+static void new_object(lua_State *L, json_value *data, ObjIndex *objIndex) {
+    lua_Object obj = lua_createtable(L);
 
     if (objIndex->obj != NULL)
         key_object_pair(objIndex, &obj);
@@ -27,15 +25,15 @@ static void new_object(json_value *data, ObjIndex *objIndex) {
     for (i = 0; i < data->u.object.length; i++) {
         idx.key = data->u.object.values[i].name;
         idx.index = 0;
-        convert_value(data->u.object.values[i].value, &idx);
+        convert_value(L, data->u.object.values[i].value, &idx);
     }
     idx.obj = NULL; // free pointer
-    lua_pushobject(obj);
+    lua_pushobject(L, obj);
 }
 
-static void new_array(json_value *data, ObjIndex *objIndex) {
+static void new_array(lua_State *L, json_value *data, ObjIndex *objIndex) {
     ObjIndex idx;
-    lua_Object obj = lua_createtable();
+    lua_Object obj = lua_createtable(L);
     idx.obj = &obj;
     idx.key = NULL;
     idx.index = 1;
@@ -45,19 +43,19 @@ static void new_array(json_value *data, ObjIndex *objIndex) {
 
     int i;
     for (i = 0; i < data->u.array.length; i++) {
-        convert_value(data->u.array.values[i], &idx);
+        convert_value(L, data->u.array.values[i], &idx);
     }
     idx.obj = NULL; // free pointer
-    lua_pushobject(obj);
+    lua_pushobject(L, obj);
 }
 
-static void convert_value(json_value *data, ObjIndex *objIndex){
+static void convert_value(lua_State *L, json_value *data, ObjIndex *objIndex){
     switch (data->type) {
         case json_object:
-            new_object(data, objIndex);
+            new_object(L, data, objIndex);
             break;
         case json_array:
-            new_array(data, objIndex);
+            new_array(L, data, objIndex);
             break;
         case json_integer:
             key_value_pair(objIndex, (double) data->u.integer);
@@ -79,126 +77,125 @@ static void convert_value(json_value *data, ObjIndex *objIndex){
     }
 }
 
-static void decode(char *data, ObjIndex *objIndex) {
+static void decode(lua_State *L, char *data, ObjIndex *objIndex) {
     json_settings settings;
     memset(&settings, 0, sizeof (json_settings));
     settings.settings = json_enable_comments;
     char error[256];
     json_value *value = json_parse_ex(&settings, data, strlen(data), error);
     if (value == 0) {
-        return lua_error((char *) error);
+        return lua_error(L, (char *) error);
     }
-    convert_value(value, objIndex);
+    convert_value(L, value, objIndex);
     json_value_free(value);
 }
 
-static bool is_indexed_array(lua_Object *obj) {
-    lua_beginblock();
+static bool is_indexed_array(lua_State *L, lua_Object *obj) {
+    lua_beginblock(L);
     int index = 0;
-    index = lua_next(*obj, index);
+    index = lua_next(L, *obj, index);
     bool status = true;
     while (index != 0) {
-        if (!lua_isnumber(lua_getparam(1))) {
+        if (!lua_isnumber(L, lua_getparam(L, 1))) {
             status = false;
             break;
         }
-        index = lua_next(*obj, index);
+        index = lua_next(L, *obj, index);
     }
-    lua_endblock();
+    lua_endblock(L);
     return status;
 }
 
-static bool is_empty_array(lua_Object *obj) {
-    lua_beginblock();
+static bool is_empty_array(lua_State *L, lua_Object *obj) {
+    lua_beginblock(L);
     int index = 0;
-    index = lua_next(*obj, index);
-    lua_endblock();
+    index = lua_next(L, *obj, index);
+    lua_endblock(L);
     return index == 0 ? true : false;
 }
 
-static json_value *encode_value(json_value *object, const char *key, lua_Object *value) {
-    switch (luaA_Address(*value)->ttype) {
-        case LUA_T_NUMBER:
-            return json_double_new(lua_getnumber(*value));
-        case LUA_T_STRING:
-            return json_string_new(lua_getstring(*value));
-        case LUA_T_ARRAY:
-            return is_indexed_array(value) && !is_empty_array(value) ?
-                   encode_array(value, key, object) : encode_object(value, key, object);
-        case LUA_T_NIL:
-            return json_null_new();
-        default:
-            lua_error("type not recognized!");
+static json_value *encode_value(lua_State *L, json_value *object, const char *key, lua_Object *value){
+    if (lua_isnumber(L, *value)) {
+        return json_double_new(lua_getnumber(L, *value));
+    } else if (lua_isstring(L, *value)) {
+        return json_string_new(lua_getstring(L, *value));
+    } else if (lua_istable(L, *value)) {
+        return is_indexed_array(L, value) && !is_empty_array(L, value) ?
+               encode_array(L, value, key, object) : encode_object(L, value, key, object);
+    } else if (lua_isnil(L, *value)) {
+        return json_null_new();
+    } else {
+        lua_error(L, "Type not recognized!");
+        return NULL;
     }
-    return NULL;
 }
 
 
-static json_value *encode_array(lua_Object *obj, const char *key, json_value *object) {
-    lua_beginblock();
+static json_value *encode_array(lua_State *L, lua_Object *obj, const char *key, json_value *object) {
+    lua_beginblock(L);
     json_value *arr = json_array_new(0);
 
     int index = 0;
-    index = lua_next(*obj, index);
+    index = lua_next(L, *obj, index);
 
     lua_Object value;
     while (index != 0) {
-        lua_getparam(1);
-        value = lua_getparam(2);
-        json_array_push(arr, encode_value(arr, key, &value));  // ex {1 = ?}
-        index = lua_next(*obj, index);
+        lua_getparam(L, 1);
+        value = lua_getparam(L, 2);
+        json_array_push(arr, encode_value(L, arr, key, &value));  // ex {1 = ?}
+        index = lua_next(L, *obj, index);
     }
-    lua_endblock();
+    lua_endblock(L);
     return arr;
 }
 
-static json_value *encode_object(lua_Object *obj, const char *key, json_value *object) {
-    lua_beginblock();
+static json_value *encode_object(lua_State *L, lua_Object *obj, const char *key, json_value *object) {
+    lua_beginblock(L);
     json_value *json_obj = json_object_new(0);
 
     int index = 0;
-    index = lua_next(*obj, index);
+    index = lua_next(L, *obj, index);
 
     char *local_key;
     lua_Object value;
     while (index != 0) {
-        local_key = lua_getstring(lua_getparam(1));
-        value = lua_getparam(2);
-        json_object_push(json_obj, local_key, encode_value(json_obj, local_key, &value));  // ex {a = ?}
-        index = lua_next(*obj, index);
+        local_key = lua_getstring(L, lua_getparam(L, 1));
+        value = lua_getparam(L, 2);
+        json_object_push(json_obj, local_key, encode_value(L, json_obj, local_key, &value));  // ex {a = ?}
+        index = lua_next(L, *obj, index);
     }
-    lua_endblock();
+    lua_endblock(L);
     return json_obj;
 }
 
-static void decodeJson(void) {
+static void decodeJson(lua_State *L) {
     ObjIndex idx;
     idx.obj = NULL;
     idx.key = NULL;
     idx.index = 1;
-    char *str = luaL_check_string(1);
-    decode(str, &idx);
+    char *str = luaL_check_string(L, 1);
+    decode(L, str, &idx);
 }
 
-static void encodeJson(void) {
-    lua_Object obj = lua_getparam(1);
+static void encodeJson(lua_State *L) {
+    lua_Object obj = lua_getparam(L, 1);
     json_value *json_vl;
 
-    if (lua_isnumber(obj)) {
-        json_vl = json_double_new(lua_getnumber(obj)); // number like 1
-    } else if (lua_isstring(obj)) {
-        json_vl = json_string_new(lua_getstring(obj)); // string like "a" or "\"\""
-    } else if (lua_isnil(obj)) {
+    if (lua_isnumber(L, obj)) {
+        json_vl = json_double_new(lua_getnumber(L, obj)); // number like 1
+    } else if (lua_isstring(L, obj)) {
+        json_vl = json_string_new(lua_getstring(L, obj)); // string like "a" or "\"\""
+    } else if (lua_isnil(L, obj)) {
         json_vl = json_null_new(); // null like nil
-    } else if (is_indexed_array(&obj) == true) {  // array [1,3,4]
-        json_vl = !is_empty_array(&obj) ? encode_array(&obj, NULL, NULL) : encode_object(&obj, NULL, NULL);
+    } else if (is_indexed_array(L, &obj) == true) {  // array [1,3,4]
+        json_vl = !is_empty_array(L, &obj) ? encode_array(L, &obj, NULL, NULL) : encode_object(L, &obj, NULL, NULL);
     } else {
-        json_vl = encode_object(&obj, NULL, NULL);  // object {"a": 1}
+        json_vl = encode_object(L, &obj, NULL, NULL);  // object {"a": 1}
     }
     char *buf = malloc(json_measure(json_vl));
     json_serialize(buf, json_vl);
 
-    lua_pushstring(buf);
+    lua_pushstring(L, buf);
     free(buf);
 }
 
@@ -207,10 +204,9 @@ static struct luaL_reg json[] = {
     {"json_encode", encodeJson}
 };
 
-int DLL_EXPORT lua_ljsonopen(lua_State *state)
+int DLL_EXPORT lua_ljsonopen(lua_State *L)
 {
-    lua_state = state;
-
-    luaL_openlib(json, (sizeof(json)/sizeof(json[0])));
+    printf("LUA_VERSION: %s\n", LUA_VERSION);
+    luaL_openlib(L, json, (sizeof(json)/sizeof(json[0])));
     return 0;
 }

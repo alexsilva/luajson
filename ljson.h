@@ -18,7 +18,7 @@ struct OIdx {
 
 typedef struct OIdx ObjIndex;
 
-int DLL_EXPORT lua_ljsonopen(lua_State *state);
+int DLL_EXPORT lua_ljsonopen(lua_State *L);
 
 #ifdef __cplusplus
 }

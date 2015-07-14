@@ -4,72 +4,72 @@
 #include "ljson.h"
 
 
-void set_key_ref(ObjIndex *objIdx) {
+void set_key_ref(lua_State *L, ObjIndex *objIdx) {
     if (objIdx->key != NULL) {
-        lua_pushstring(objIdx->key);
+        lua_pushstring(L, objIdx->key);
     } else {
-        lua_pushnumber(objIdx->index);
+        lua_pushnumber(L, objIdx->index);
         objIdx->index++;
     }
 }
 
-void key_strvalue_pair(ObjIndex *objIdx, char *str) {
+void key_strvalue_pair(lua_State *L, ObjIndex *objIdx, char *str) {
     if (objIdx->obj != NULL) {
-        lua_pushobject(*objIdx->obj);
-        set_key_ref(objIdx);
+        lua_pushobject(L, *objIdx->obj);
+        set_key_ref(L, objIdx);
     }
-    lua_pushstring(str);
+    lua_pushstring(L, str);
 
     if (objIdx->obj != NULL) {
-        lua_settable();
-    }
-}
-
-void key_strlvalue_pair(ObjIndex *objIdx, char *str, long length) {
-    if (objIdx->obj != NULL) {
-        lua_pushobject(*objIdx->obj);
-        set_key_ref(objIdx);
-    }
-    lua_pushlstring(str, length);
-
-    if (objIdx->obj != NULL) {
-        lua_settable();
+        lua_settable(L);
     }
 }
 
-void key_nil_pair(ObjIndex *objIdx) {
+void key_strlvalue_pair(lua_State *L, ObjIndex *objIdx, char *str, long length) {
     if (objIdx->obj != NULL) {
-        lua_pushobject(*objIdx->obj);
-        set_key_ref(objIdx);
+        lua_pushobject(L, *objIdx->obj);
+        set_key_ref(L, objIdx);
     }
-    lua_pushnil();
+    lua_pushlstring(L, str, length);
 
     if (objIdx->obj != NULL) {
-        lua_settable();
-    }
-}
-
-void key_value_pair(ObjIndex *objIdx, double number) {
-    if (objIdx->obj != NULL) {
-        lua_pushobject(*objIdx->obj);
-        set_key_ref(objIdx);
-    }
-    lua_pushnumber(number);
-
-    if (objIdx->obj != NULL) {
-        lua_settable();
+        lua_settable(L);
     }
 }
 
-void key_object_pair(ObjIndex *objIdx, lua_Object *obj) {
+void key_nil_pair(lua_State *L, ObjIndex *objIdx) {
     if (objIdx->obj != NULL) {
-        lua_pushobject(*objIdx->obj);
-        set_key_ref(objIdx);
+        lua_pushobject(L, *objIdx->obj);
+        set_key_ref(L, objIdx);
     }
-    lua_pushobject(*obj);
+    lua_pushnil(L);
 
     if (objIdx->obj != NULL) {
-        lua_settable();
-        lua_pushobject(*objIdx->obj);
+        lua_settable(L);
+    }
+}
+
+void key_value_pair(lua_State *L, ObjIndex *objIdx, double number) {
+    if (objIdx->obj != NULL) {
+        lua_pushobject(L, *objIdx->obj);
+        set_key_ref(L, objIdx);
+    }
+    lua_pushnumber(L, number);
+
+    if (objIdx->obj != NULL) {
+        lua_settable(L);
+    }
+}
+
+void key_object_pair(lua_State *L, ObjIndex *objIdx, lua_Object *obj) {
+    if (objIdx->obj != NULL) {
+        lua_pushobject(L, *objIdx->obj);
+        set_key_ref(L, objIdx);
+    }
+    lua_pushobject(L, *obj);
+
+    if (objIdx->obj != NULL) {
+        lua_settable(L);
+        lua_pushobject(L, *objIdx->obj);
     }
 }

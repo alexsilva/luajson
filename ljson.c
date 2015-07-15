@@ -206,9 +206,7 @@ static struct luaL_reg json[] = {
 };
 
 
-int DLL_EXPORT lua_ljsonopen(lua_State *L)
-{
-    printf("version %s\n", LUA_VERSION);
+int DLL_EXPORT lua_ljsonopen(lua_State *L) {
     luaL_openlib(L, json, (sizeof(json)/sizeof(json[0])));
     return 0;
 }

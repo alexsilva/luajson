@@ -9,7 +9,7 @@
 /*
 ** generic allocation routine.
 */
-void luaD_checkstack (lua_State *L, int n) {}
+void luaD_checkstack(lua_State *L, int n) {}
 
 void lapi_pushobject(lua_State *L, TObject *o) {
     *L->stack.top = *o;

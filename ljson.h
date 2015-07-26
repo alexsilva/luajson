@@ -1,7 +1,13 @@
 #ifndef __MAIN_H__
 #define __MAIN_H__
 
-#define DLL_EXPORT __declspec(dllexport)
+#if defined(_MSC_VER)
+    //  Microsoft
+    #define LUA_LIBRARY __declspec(dllexport)
+#else
+    //  GCC
+    #define LUA_LIBRARY __attribute__((visibility("default")))
+#endif
 
 #ifdef __cplusplus
 extern "C"
@@ -21,7 +27,7 @@ struct OIdx {
 
 typedef struct OIdx ObjIndex;
 
-int DLL_EXPORT lua_ljsonopen(lua_State *L);
+int LUA_LIBRARY lua_ljsonopen(lua_State *L);
 
 #ifdef __cplusplus
 }

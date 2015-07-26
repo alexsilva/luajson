@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.2)
 project(luajson)
 
-# [EXTERNAL OPTION] -D LUA_DIR=../Lua3.2
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 include_directories(
@@ -24,4 +23,5 @@ set(SOURCE_FILES
     ljson.h)
 
 add_library(ljson SHARED ${SOURCE_FILES})
-target_link_libraries(ljson ${LUA_LIBRARIES})
+target_link_libraries(ljson ${LUA_LIB})
+set_target_properties(ljson PROPERTIES COMPILE_FLAGS "-m32" LINK_FLAGS "-m32")

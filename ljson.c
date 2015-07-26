@@ -1,13 +1,7 @@
 #include "json.h"
 #include "json-builder.h"
-
-#include "lua.h"
-#include "lauxlib.h"
-#include "stdio.h"
-
 #include "ljson.h"
 #include "helpers.h"
-#include "lua_api.h"
 
 
 static void convert_value(lua_State *L, json_value *data, ObjIndex *objIndex);

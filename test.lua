@@ -57,7 +57,7 @@ function open_read(filepath)
 end
 
 local i = 0
-local prefix, filepath, decoded
+local prefix, filepath, decoded, encoded
 while (i < 13) do
     print('==============================')
     if (i < 10) then
@@ -73,7 +73,7 @@ while (i < 13) do
     printer(decoded, nil, 0)
 
     print('[encoded]')
-    local encoded = json_encode(decoded)
+    encoded = json_encode(decoded)
     print(encoded)
 
     i = i + 1

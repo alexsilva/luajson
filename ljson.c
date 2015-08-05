@@ -1,8 +1,11 @@
+#include <stdio.h>
+#include <time.h>
 #include "json.h"
 #include "json-builder.h"
 #include "ljson.h"
 #include "helpers.h"
 
+#define PROFILE 0
 
 static void convert_value(lua_State *L, json_value *data, ObjIndex *objIndex);
 static json_value *encode_array(lua_State *L, lua_Object *obj, const char *key, json_value *object);
@@ -15,13 +18,14 @@ static void new_object(lua_State *L, json_value *data, ObjIndex *objIndex) {
     if (objIndex->obj != NULL)
         key_object_pair(L, objIndex, &obj);
 
-    int i;
     ObjIndex idx;
     idx.obj = &obj;
-    for (i = 0; i < data->u.object.length; i++) {
-        idx.key = data->u.object.values[i].name;
+    int index = 0;
+    while (index < data->u.object.length) {
+        idx.key = data->u.object.values[index].name;
         idx.index = 0;
-        convert_value(L, data->u.object.values[i].value, &idx);
+        convert_value(L, data->u.object.values[index].value, &idx);
+        index++;
     }
     idx.obj = NULL; // free pointer
     lua_pushobject(L, obj);
@@ -37,9 +41,10 @@ static void new_array(lua_State *L, json_value *data, ObjIndex *objIndex) {
     if (objIndex->obj != NULL)
         key_object_pair(L, objIndex, idx.obj);
 
-    int i;
-    for (i = 0; i < data->u.array.length; i++) {
-        convert_value(L, data->u.array.values[i], &idx);
+    int index = 0;
+    while (index < data->u.array.length) {
+        convert_value(L, data->u.array.values[index], &idx);
+        index++;
     }
     idx.obj = NULL; // free pointer
     lua_pushobject(L, obj);
@@ -60,8 +65,7 @@ static void convert_value(lua_State *L, json_value *data, ObjIndex *objIndex){
             key_value_pair(L, objIndex, data->u.dbl);
             break;
         case json_string:
-            key_strlvalue_pair(L, objIndex, data->u.string.ptr,
-                               (long) data->u.string.length);
+            key_strlvalue_pair(L, objIndex, data->u.string.ptr, (long) data->u.string.length);
             break;
         case json_boolean:
             key_value_pair(L, objIndex, data->u.boolean);
@@ -88,8 +92,7 @@ static void decode(lua_State *L, char *data, ObjIndex *objIndex) {
 
 static bool is_indexed_array(lua_State *L, lua_Object *obj) {
     lua_beginblock(L);
-    int index = 0;
-    index = lua_next(L, *obj, index);
+    int index = lua_next(L, *obj, 0);
     bool status = true;
     while (index != 0) {
         if (!lua_isnumber(L, lua_getparam(L, 1))) {
@@ -131,10 +134,9 @@ static json_value *encode_array(lua_State *L, lua_Object *obj, const char *key, 
     lua_beginblock(L);
     json_value *arr = json_array_new(0);
 
-    int index = 0;
-    index = lua_next(L, *obj, index);
-
+    int index = lua_next(L, *obj, 0);
     lua_Object value;
+
     while (index != 0) {
         lua_getparam(L, 1);
         value = lua_getparam(L, 2);
@@ -148,10 +150,7 @@ static json_value *encode_array(lua_State *L, lua_Object *obj, const char *key, 
 static json_value *encode_object(lua_State *L, lua_Object *obj, const char *key, json_value *object) {
     lua_beginblock(L);
     json_value *json_obj = json_object_new(0);
-
-    int index = 0;
-    index = lua_next(L, *obj, index);
-
+    int index = lua_next(L, *obj, 0);
     char *local_key;
     lua_Object value;
     while (index != 0) {
@@ -169,8 +168,17 @@ static void decodeJson(lua_State *L) {
     idx.obj = NULL;
     idx.key = NULL;
     idx.index = 1;
+
     char *str = luaL_check_string(L, 1);
+
+    clock_t start = clock();
     decode(L, str, &idx);
+    clock_t end = clock();
+
+    if (PROFILE) {
+        double elapsed_time = (end - start) / (double) CLOCKS_PER_SEC;
+        printf("decode: start 0x%x   end 0x%x   elapsed: %.3f \n", start, end, elapsed_time);
+    }
 }
 
 static void encodeJson(lua_State *L) {

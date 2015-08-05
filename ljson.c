@@ -89,14 +89,14 @@ static void decode(lua_State *L, char *data, ObjIndex *objIndex) {
 static bool is_indexed_array(lua_State *L, lua_Object *obj) {
     lua_beginblock(L);
     int index = 0;
-    index = lua_api_next(L, *obj, index);
+    index = lua_next(L, *obj, index);
     bool status = true;
     while (index != 0) {
         if (!lua_isnumber(L, lua_getparam(L, 1))) {
             status = false;
             break;
         }
-        index = lua_api_next(L, *obj, index);
+        index = lua_next(L, *obj, index);
     }
     lua_endblock(L);
     return status;
@@ -105,7 +105,7 @@ static bool is_indexed_array(lua_State *L, lua_Object *obj) {
 static bool is_empty_array(lua_State *L, lua_Object *obj) {
     lua_beginblock(L);
     int index = 0;
-    index = lua_api_next(L, *obj, index);
+    index = lua_next(L, *obj, index);
     lua_endblock(L);
     return index == 0 ? true : false;
 }
@@ -132,14 +132,14 @@ static json_value *encode_array(lua_State *L, lua_Object *obj, const char *key, 
     json_value *arr = json_array_new(0);
 
     int index = 0;
-    index = lua_api_next(L, *obj, index);
+    index = lua_next(L, *obj, index);
 
     lua_Object value;
     while (index != 0) {
         lua_getparam(L, 1);
         value = lua_getparam(L, 2);
         json_array_push(arr, encode_value(L, arr, key, &value));  // ex {1 = ?}
-        index = lua_api_next(L, *obj, index);
+        index = lua_next(L, *obj, index);
     }
     lua_endblock(L);
     return arr;
@@ -150,7 +150,7 @@ static json_value *encode_object(lua_State *L, lua_Object *obj, const char *key,
     json_value *json_obj = json_object_new(0);
 
     int index = 0;
-    index = lua_api_next(L, *obj, index);
+    index = lua_next(L, *obj, index);
 
     char *local_key;
     lua_Object value;
@@ -158,7 +158,7 @@ static json_value *encode_object(lua_State *L, lua_Object *obj, const char *key,
         local_key = lua_getstring(L, lua_getparam(L, 1));
         value = lua_getparam(L, 2);
         json_object_push(json_obj, local_key, encode_value(L, json_obj, local_key, &value));  // ex {a = ?}
-        index = lua_api_next(L, *obj, index);
+        index = lua_next(L, *obj, index);
     }
     lua_endblock(L);
     return json_obj;

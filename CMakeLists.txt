@@ -15,8 +15,6 @@ set(SOURCE_FILES
     json-builder/json-builder.h
     json-parser/json.c
     json-parser/json.h
-    lua_api.c
-    lua_api.h
     helpers.c
     helpers.h
     ljson.c

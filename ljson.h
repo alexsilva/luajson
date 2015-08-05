@@ -15,7 +15,6 @@ extern "C"
 #endif
 #include "lua.h"
 #include "lauxlib.h"
-#include "lua_api.h"
 
 typedef enum { false, true } bool;
 
